@@ -1,0 +1,9 @@
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      # Порт — как у остальных standalone-редакторов (snap/gdevelop): подобрать
+      # свободный на проде и завести nginx-домен turtle.tirskix.space по
+      # аналогии с gdevelop.tirskix.space (см. README).
+      - "127.0.0.1:8091:3000"

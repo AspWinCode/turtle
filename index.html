@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Черепашка</title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <div id="app">
+      <header id="toolbar">
+        <div class="toolbar-group">
+          <button id="mode-blocks" class="mode-btn active" type="button">🧩 Блоки</button>
+          <button id="mode-code" class="mode-btn" type="button">⌨️ Код</button>
+        </div>
+        <div class="toolbar-group">
+          <button id="run-btn" class="action-btn run" type="button">▶ Запустить</button>
+          <button id="stop-btn" class="action-btn stop" type="button" disabled>⏹ Стоп</button>
+          <button id="clear-btn" class="action-btn" type="button">🧹 Очистить</button>
+        </div>
+      </header>
+      <main id="workspace-area">
+        <section id="editor-pane">
+          <div id="blockly-editor"></div>
+          <div id="code-editor"></div>
+        </section>
+        <section id="canvas-pane">
+          <canvas id="turtle-canvas" width="800" height="600"></canvas>
+          <div id="status-bar"></div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
