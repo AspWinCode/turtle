@@ -25,11 +25,16 @@
           <div id="code-editor"></div>
         </section>
         <section id="canvas-pane">
-          <canvas id="turtle-canvas" width="800" height="600"></canvas>
+          <div id="turtle-canvas"></div>
           <div id="status-bar"></div>
         </section>
       </main>
     </div>
+    <!-- Настоящий Python в браузере — реализует полный модуль turtle
+         (forward/circle/write/Screen/... — см. README). UMD-сборки,
+         поэтому обычные <script>, не ES-модули. -->
+    <script src="/vendor/skulpt/skulpt.min.js"></script>
+    <script src="/vendor/skulpt/skulpt-stdlib.js"></script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

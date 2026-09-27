@@ -1,12 +1,10 @@
 import { EditorView, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
-import { javascript } from '@codemirror/lang-javascript';
+import { python } from '@codemirror/lang-python';
 
-import { Blockly, javascriptGenerator, TURTLE_TOOLBOX } from './turtleBlocks';
-import { TurtleEngine, TurtleLimitError } from './turtleEngine';
-import { TurtleRenderer } from './renderer';
-import { runTurtleCode, RunError } from './runner';
+import { Blockly, pythonGenerator, TURTLE_TOOLBOX } from './turtleBlocks';
+import { runPythonTurtle, PythonRunError } from './skulptRunner';
 
 import './style.css';
 
@@ -14,19 +12,22 @@ const STORAGE_BLOCKS = 'turtle:blocks-xml';
 const STORAGE_CODE = 'turtle:code';
 const STORAGE_MODE = 'turtle:mode';
 
-const DEFAULT_CODE = `// Нарисуем квадрат
-setColor('#1a7f37');
-for (let i = 0; i < 4; i++) {
-  forward(100);
-  right(90);
-}
+const TARGET_ID = 'turtle-canvas';
+
+const DEFAULT_CODE = `import turtle
+
+# Нарисуем квадрат
+turtle.pencolor('#1a7f37')
+for i in range(4):
+    turtle.forward(100)
+    turtle.right(90)
 `;
 
 type Mode = 'blocks' | 'code';
 
 const blocklyDiv = document.getElementById('blockly-editor') as HTMLDivElement;
 const codeDiv = document.getElementById('code-editor') as HTMLDivElement;
-const canvas = document.getElementById('turtle-canvas') as HTMLCanvasElement;
+const targetDiv = document.getElementById(TARGET_ID) as HTMLDivElement;
 const statusBar = document.getElementById('status-bar') as HTMLDivElement;
 const runBtn = document.getElementById('run-btn') as HTMLButtonElement;
 const stopBtn = document.getElementById('stop-btn') as HTMLButtonElement;
@@ -34,12 +35,8 @@ const clearBtn = document.getElementById('clear-btn') as HTMLButtonElement;
 const modeBlocksBtn = document.getElementById('mode-blocks') as HTMLButtonElement;
 const modeCodeBtn = document.getElementById('mode-code') as HTMLButtonElement;
 
-const engine = new TurtleEngine();
-const renderer = new TurtleRenderer(canvas);
-engine.reset();
-renderer.renderAll(engine.ops);
-
 let mode: Mode = (localStorage.getItem(STORAGE_MODE) as Mode) || 'blocks';
+let runToken = 0; // растёт при каждом запуске/остановке — обгоняет завершение отменённого запуска
 
 // ── Blockly ────────────────────────────────────────────────────────────────
 const workspace = Blockly.inject(blocklyDiv, {
@@ -80,7 +77,7 @@ workspace.addChangeListener(() => {
   localStorage.setItem(STORAGE_BLOCKS, Blockly.utils.xml.domToText(dom));
 });
 
-// ── CodeMirror ─────────────────────────────────────────────────────────────
+// ── CodeMirror (Python) ─────────────────────────────────────────────────────
 const savedCode = localStorage.getItem(STORAGE_CODE) ?? DEFAULT_CODE;
 
 const codeView = new EditorView({
@@ -90,7 +87,7 @@ const codeView = new EditorView({
       lineNumbers(),
       highlightActiveLine(),
       history(),
-      javascript(),
+      python(),
       keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
@@ -127,45 +124,49 @@ function setStatus(text: string, isError = false) {
 
 function currentCode(): string {
   if (mode === 'blocks') {
-    return javascriptGenerator.workspaceToCode(workspace);
+    return `import turtle\n\n${pythonGenerator.workspaceToCode(workspace)}`;
   }
   return codeView.state.doc.toString();
 }
 
-function run() {
+async function run() {
   const code = currentCode();
+  const myToken = ++runToken;
   runBtn.disabled = true;
   stopBtn.disabled = false;
   setStatus('Выполняется…');
   try {
-    const ops = runTurtleCode(code, engine);
-    renderer.animate(ops, () => {
-      runBtn.disabled = false;
-      stopBtn.disabled = true;
-      setStatus(`Готово — ${Math.max(0, ops.length - 1)} шагов`);
-    });
-  } catch (e) {
+    await runPythonTurtle(code, TARGET_ID, () => {});
+    if (myToken !== runToken) return; // отменено кнопкой "Стоп" — не перетираем её статус
     runBtn.disabled = false;
     stopBtn.disabled = true;
-    if (e instanceof TurtleLimitError || e instanceof RunError) {
+    setStatus('Готово');
+  } catch (e) {
+    if (myToken !== runToken) return;
+    runBtn.disabled = false;
+    stopBtn.disabled = true;
+    if (e instanceof PythonRunError) {
       setStatus(e.message, true);
     } else {
       setStatus(`Неожиданная ошибка: ${e instanceof Error ? e.message : String(e)}`, true);
     }
-    renderer.renderAll(engine.ops);
   }
 }
 
 function stop() {
-  renderer.stop();
+  // Skulpt не даёт прервать уже запущенный интерпретатор напрямую — считаем
+  // текущий прогон отменённым (runToken) и убираем рисунок, к которому он
+  // больше не должен что-либо дорисовывать.
+  runToken++;
+  targetDiv.innerHTML = '';
   runBtn.disabled = false;
   stopBtn.disabled = true;
   setStatus('Остановлено');
 }
 
 function clearCanvas() {
-  engine.reset();
-  renderer.renderAll(engine.ops);
+  runToken++;
+  targetDiv.innerHTML = '';
   setStatus('Холст очищен');
 }
 
