@@ -1,6 +1,14 @@
 import * as Blockly from 'blockly/core';
 import { pythonGenerator, Order } from 'blockly/python';
 import 'blockly/blocks';
+import * as BlocklyRu from 'blockly/msg/ru';
+
+/** Без явной локали Blockly.Msg пустой — тексты встроенных блоков (Повтор,
+ * Если, Переменные…) содержат плейсхолдеры вида %{BKY_...}, которые не
+ * резолвятся, из-за чего блок не может посчитать плейсхолдеры в шаблоне и
+ * падает с ошибкой при отрисовке — весь флайаут категории тогда просто не
+ * открывается (см. память: "блоки очень плохо работают"). */
+Blockly.setLocale(BlocklyRu as unknown as { [key: string]: string });
 
 /** Свои блоки черепашки — генерируют настоящий Python (модуль turtle),
  * который затем выполняется Skulpt'ом (см. skulptRunner.ts). Полный набор
