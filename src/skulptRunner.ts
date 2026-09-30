@@ -22,10 +22,18 @@ function builtinRead(filename: string): string {
 
 export class PythonRunError extends Error {}
 
-/** targetId — id пустого div'а, куда Skulpt сам вставит свой canvas
- * (Sk.TurtleGraphics.target). Он же чистит предыдущий рисунок при новом
- * запуске — вручную canvas очищать не нужно. */
+/** targetId — id div'а, куда Skulpt вставляет свои canvas (Sk.TurtleGraphics.
+ * target). Чистим его руками перед КАЖДЫМ запуском (не полагаясь на
+ * внутреннюю очистку Skulpt) и заставляем пересоздать оба canvas-слоя с
+ * нуля — задание встроено в iframe, который никогда не перемонтируется
+ * между запусками (см. Codelab StepIframeTaskView), поэтому Skulpt иначе
+ * может переиспользовать старые canvas-элементы, отрисованные под другую
+ * геометрию контейнера, и слой с линией рисования съезжает относительно
+ * слоя черепашки (репорт: "съехало, рисует не там, где сама черепашка"). */
 export function runPythonTurtle(code: string, targetId: string, onOutput: (text: string) => void): Promise<void> {
+  const targetEl = document.getElementById(targetId);
+  if (targetEl) targetEl.innerHTML = '';
+
   Sk.configure({
     output: onOutput,
     read: builtinRead,
