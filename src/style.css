@@ -104,23 +104,24 @@ body {
   background: #fafcfa;
   padding: 16px;
   min-width: 320px;
+  overflow: auto;
 }
 
-/* div, не canvas — canvas внутрь вставляет сам Skulpt (Sk.TurtleGraphics.target) */
+/* div, не canvas — canvas внутрь вставляет сам Skulpt (Sk.TurtleGraphics.target).
+   Skulpt накладывает друг на друга ДВА canvas (черепашка сверху, линии снизу)
+   через фиксированный в пикселях отрицательный margin-top — это позиционирование
+   ломается, если сжать канвасы через max-width/max-height (CSS-масштаб не
+   затрагивает margin в px, второй слой съезжает и становится не виден). Поэтому
+   размер контейнера и обоих canvas всегда фиксированный, нативный; если места
+   в панели не хватает — скроллим контейнер целиком, а не масштабируем канвасы. */
 #turtle-canvas {
   width: 800px;
   height: 600px;
-  max-width: 100%;
-  max-height: 100%;
+  flex-shrink: 0;
   background: #ffffff;
   border: 1px solid #d9e2d9;
   border-radius: 8px;
   overflow: hidden;
-}
-
-#turtle-canvas canvas {
-  max-width: 100%;
-  max-height: 100%;
 }
 
 #status-bar {
