@@ -129,6 +129,17 @@ function currentCode(): string {
   return codeView.state.doc.toString();
 }
 
+function containerSize(): { width: number; height: number } {
+  const rect = targetDiv.getBoundingClientRect();
+  // Резервные значения — на случай нулевого размера (контейнер ещё не
+  // отрисован/скрыт в этот момент), чтобы Skulpt не пытался создать canvas
+  // 0x0.
+  return {
+    width: Math.max(200, Math.floor(rect.width) || 800),
+    height: Math.max(150, Math.floor(rect.height) || 600),
+  };
+}
+
 async function run() {
   const code = currentCode();
   const myToken = ++runToken;
@@ -136,7 +147,7 @@ async function run() {
   stopBtn.disabled = false;
   setStatus('Выполняется…');
   try {
-    await runPythonTurtle(code, TARGET_ID, () => {});
+    await runPythonTurtle(code, TARGET_ID, () => {}, containerSize());
     if (myToken !== runToken) return; // отменено кнопкой "Стоп" — не перетираем её статус
     runBtn.disabled = false;
     stopBtn.disabled = true;

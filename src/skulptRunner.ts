@@ -30,7 +30,12 @@ export class PythonRunError extends Error {}
  * может переиспользовать старые canvas-элементы, отрисованные под другую
  * геометрию контейнера, и слой с линией рисования съезжает относительно
  * слоя черепашки (репорт: "съехало, рисует не там, где сама черепашка"). */
-export function runPythonTurtle(code: string, targetId: string, onOutput: (text: string) => void): Promise<void> {
+export function runPythonTurtle(
+  code: string,
+  targetId: string,
+  onOutput: (text: string) => void,
+  size: { width: number; height: number },
+): Promise<void> {
   const targetEl = document.getElementById(targetId);
   if (targetEl) targetEl.innerHTML = '';
 
@@ -40,7 +45,12 @@ export function runPythonTurtle(code: string, targetId: string, onOutput: (text:
     __future__: Sk.python3,
     execLimit: EXEC_LIMIT_MS,
   });
-  Sk.TurtleGraphics = { target: targetId, width: 800, height: 600 };
+  // Размер canvas — реальный размер контейнера на момент запуска, а не
+  // фиксированный 800x600: иначе там, где панель уже отдана под задание
+  // меньше 600px в высоту (например, свёрнутый вид в курсе, не "на весь
+  // экран"), центр (0,0) черепашки физически оказывается ниже видимой
+  // области — снаружи выглядит так, будто рисунок "съезжает вверх"/обрезан.
+  Sk.TurtleGraphics = { target: targetId, width: size.width, height: size.height };
 
   // Всегда добавляем свой "import turtle" + speed(6) сверху, даже если в
   // коде уже есть свой import — повторный import в Python безопасен (модуль
