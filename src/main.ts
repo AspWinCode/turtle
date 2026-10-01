@@ -8,9 +8,16 @@ import { runPythonTurtle, PythonRunError } from './skulptRunner';
 
 import './style.css';
 
-const STORAGE_BLOCKS = 'turtle:blocks-xml';
-const STORAGE_CODE = 'turtle:code';
-const STORAGE_MODE = 'turtle:mode';
+// ?task=<id> — Codelab передаёт id элемента курса в URL iframe, чтобы разные
+// задания "Черепашка" (разные уроки) не делили одно и то же сохранённое
+// состояние в localStorage (без этого второе открытое задание показывало бы
+// код/рисунок первого). Без параметра (прямое открытие, не из курса) —
+// общий ключ, как раньше.
+const taskId = new URLSearchParams(window.location.search).get('task');
+const STORAGE_PREFIX = taskId ? `turtle:task:${taskId}:` : 'turtle:';
+const STORAGE_BLOCKS = `${STORAGE_PREFIX}blocks-xml`;
+const STORAGE_CODE = `${STORAGE_PREFIX}code`;
+const STORAGE_MODE = `${STORAGE_PREFIX}mode`;
 
 const TARGET_ID = 'turtle-canvas';
 
@@ -47,6 +54,7 @@ const workspace = Blockly.inject(blocklyDiv, {
 });
 
 const savedBlocksXml = localStorage.getItem(STORAGE_BLOCKS);
+const hadSavedState = savedBlocksXml !== null || localStorage.getItem(STORAGE_CODE) !== null;
 if (savedBlocksXml) {
   try {
     const dom = Blockly.utils.xml.textToDom(savedBlocksXml);
@@ -188,3 +196,16 @@ clearBtn.addEventListener('click', clearCanvas);
 window.addEventListener('resize', () => {
   if (mode === 'blocks') Blockly.svgResize(workspace);
 });
+
+// Прогресс (код/блоки) и так лежит в localStorage и переживает перезагрузку
+// страницы — но раньше сам РИСУНОК не восстанавливался: ученик возвращался
+// на задание (например, после перехода на другой пункт курса и обратно — а
+// iframe при этом монтируется заново, см. StepIframeTaskView в Codelab) и
+// видел пустой холст, пока не нажимал "Запустить" ещё раз. Выглядело как
+// "прогресс слетел", хотя код был цел. Автозапуск последнего сохранённого
+// состояния сразу при открытии чинит именно это — но только если состояние
+// действительно было сохранено (не дёргаем Skulpt на пустом месте у
+// первого открывшего задание ученика).
+if (hadSavedState) {
+  run();
+}
