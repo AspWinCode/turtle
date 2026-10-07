@@ -21,14 +21,7 @@ const STORAGE_MODE = `${STORAGE_PREFIX}mode`;
 
 const TARGET_ID = 'turtle-canvas';
 
-const DEFAULT_CODE = `import turtle
-
-# Нарисуем квадрат
-turtle.pencolor('#1a7f37')
-for i in range(4):
-    turtle.forward(100)
-    turtle.right(90)
-`;
+const DEFAULT_CODE = '';
 
 type Mode = 'blocks' | 'code';
 
@@ -45,7 +38,7 @@ const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
 const openBtn = document.getElementById('open-btn') as HTMLButtonElement;
 const openFileInput = document.getElementById('open-file') as HTMLInputElement;
 
-let mode: Mode = (localStorage.getItem(STORAGE_MODE) as Mode) || 'blocks';
+let mode: Mode = (localStorage.getItem(STORAGE_MODE) as Mode) || 'code';
 let runToken = 0; // растёт при каждом запуске/остановке — обгоняет завершение отменённого запуска
 
 // ── Blockly ────────────────────────────────────────────────────────────────
