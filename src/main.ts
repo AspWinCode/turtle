@@ -17,7 +17,6 @@ const taskId = new URLSearchParams(window.location.search).get('task');
 const STORAGE_PREFIX = taskId ? `turtle:task:${taskId}:` : 'turtle:';
 const STORAGE_BLOCKS = `${STORAGE_PREFIX}blocks-xml`;
 const STORAGE_CODE = `${STORAGE_PREFIX}code`;
-const STORAGE_MODE = `${STORAGE_PREFIX}mode`;
 
 const TARGET_ID = 'turtle-canvas';
 
@@ -38,7 +37,9 @@ const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
 const openBtn = document.getElementById('open-btn') as HTMLButtonElement;
 const openFileInput = document.getElementById('open-file') as HTMLInputElement;
 
-let mode: Mode = (localStorage.getItem(STORAGE_MODE) as Mode) || 'code';
+// Новый запуск всегда открывает редактор кода. Ранее сохранённый режим
+// "blocks" не должен перебивать это значение при повторном входе в задание.
+let mode: Mode = 'code';
 let runToken = 0; // растёт при каждом запуске/остановке — обгоняет завершение отменённого запуска
 
 // ── Blockly ────────────────────────────────────────────────────────────────
@@ -107,7 +108,6 @@ const codeView = new EditorView({
 // ── Режим блоки/код ──────────────────────────────────────────────────────
 function setMode(next: Mode) {
   mode = next;
-  localStorage.setItem(STORAGE_MODE, mode);
   const isBlocks = mode === 'blocks';
   blocklyDiv.style.display = isBlocks ? 'block' : 'none';
   codeDiv.style.display = isBlocks ? 'none' : 'block';
