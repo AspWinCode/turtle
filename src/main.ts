@@ -41,6 +41,9 @@ const stopBtn = document.getElementById('stop-btn') as HTMLButtonElement;
 const clearBtn = document.getElementById('clear-btn') as HTMLButtonElement;
 const modeBlocksBtn = document.getElementById('mode-blocks') as HTMLButtonElement;
 const modeCodeBtn = document.getElementById('mode-code') as HTMLButtonElement;
+const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
+const openBtn = document.getElementById('open-btn') as HTMLButtonElement;
+const openFileInput = document.getElementById('open-file') as HTMLInputElement;
 
 let mode: Mode = (localStorage.getItem(STORAGE_MODE) as Mode) || 'blocks';
 let runToken = 0; // растёт при каждом запуске/остановке — обгоняет завершение отменённого запуска
@@ -136,6 +139,81 @@ function currentCode(): string {
   }
   return codeView.state.doc.toString();
 }
+
+type TurtleProjectFile = {
+  format: 'codelab-turtle-project';
+  version: 1;
+  savedAt: string;
+  taskId: string | null;
+  mode: Mode;
+  code: string;
+  blocksXml: string;
+};
+
+function projectFileName() {
+  const suffix = taskId ? `-${taskId}` : '';
+  return `turtle-project${suffix}-${new Date().toISOString().slice(0, 10)}.json`;
+}
+
+function saveProject() {
+  const project: TurtleProjectFile = {
+    format: 'codelab-turtle-project',
+    version: 1,
+    savedAt: new Date().toISOString(),
+    taskId,
+    mode,
+    code: codeView.state.doc.toString(),
+    blocksXml: Blockly.utils.xml.domToText(Blockly.Xml.workspaceToDom(workspace)),
+  };
+  const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = projectFileName();
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setStatus('Проект сохранён в файл');
+}
+
+function isTurtleProject(value: unknown): value is TurtleProjectFile {
+  if (!value || typeof value !== 'object') return false;
+  const project = value as Partial<TurtleProjectFile>;
+  return project.format === 'codelab-turtle-project'
+    && project.version === 1
+    && (project.mode === 'blocks' || project.mode === 'code')
+    && typeof project.code === 'string'
+    && typeof project.blocksXml === 'string';
+}
+
+async function openProject(file: File) {
+  try {
+    const parsed: unknown = JSON.parse(await file.text());
+    if (!isTurtleProject(parsed)) throw new Error('Файл не является проектом Черепашки');
+
+    const dom = Blockly.utils.xml.textToDom(parsed.blocksXml);
+    runToken++;
+    targetDiv.innerHTML = '';
+    workspace.clear();
+    Blockly.Xml.domToWorkspace(dom, workspace);
+    codeView.dispatch({ changes: { from: 0, to: codeView.state.doc.length, insert: parsed.code } });
+    localStorage.setItem(STORAGE_BLOCKS, parsed.blocksXml);
+    localStorage.setItem(STORAGE_CODE, parsed.code);
+    setMode(parsed.mode);
+    setStatus('Проект открыт');
+    void run();
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : 'Не удалось открыть проект', true);
+  } finally {
+    openFileInput.value = '';
+  }
+}
+
+saveBtn.addEventListener('click', saveProject);
+openBtn.addEventListener('click', () => openFileInput.click());
+openFileInput.addEventListener('change', () => {
+  const file = openFileInput.files?.[0];
+  if (file) void openProject(file);
+});
 
 function containerSize(): { width: number; height: number } {
   const rect = targetDiv.getBoundingClientRect();

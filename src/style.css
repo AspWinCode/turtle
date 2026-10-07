@@ -30,6 +30,7 @@ body {
 .toolbar-group {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 .mode-btn,
@@ -158,6 +159,15 @@ body {
 }
 
 @media (max-width: 800px) {
+  #toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .mode-btn,
+  .action-btn {
+    padding: 7px 10px;
+    font-size: 13px;
+  }
   #workspace-area {
     flex-direction: column;
   }
