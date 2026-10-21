@@ -280,3 +280,47 @@ window.addEventListener('resize', () => {
 if (hadSavedState) {
   run();
 }
+
+// ── Сдача проекта тренеру ────────────────────────────────────────────────
+// Кнопка видна только когда страница встроена в Codelab как проект с
+// ручной проверкой (?task=<id>&project=1, см. CoursePage.tsx::TurtleProjectView
+// в Codelab) — без этого параметра (обычное задание "Черепашка" без
+// проверки, или открытие редактора напрямую не из Codelab) кнопки нет,
+// потому что отправлять код в таком случае некуда и некому.
+const isProjectEmbed = new URLSearchParams(window.location.search).get('project') === '1';
+const submitGroup = document.getElementById('submit-group') as HTMLDivElement;
+const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+const submitStatus = document.getElementById('submit-status') as HTMLSpanElement;
+
+if (isProjectEmbed && window.parent !== window) {
+  submitGroup.hidden = false;
+
+  function setSubmitStatus(text: string, kind: 'ok' | 'error' | '' = '') {
+    submitStatus.textContent = text;
+    submitStatus.classList.toggle('error', kind === 'error');
+    submitStatus.classList.toggle('ok', kind === 'ok');
+  }
+
+  // Ответ родителя после фактической загрузки/отправки на бэкенд Codelab —
+  // поэтому "Отправлено" показываем только по этому сообщению, не сразу по
+  // клику (иначе ученик решит, что всё сдано, даже если родитель ответил
+  // ошибкой сети/валидации).
+  window.addEventListener('message', (event) => {
+    const data = event.data as { type?: string; taskId?: string | number; ok?: boolean; message?: string } | null;
+    if (!data || data.type !== 'codelab-turtle-submit-result') return;
+    if (String(data.taskId) !== String(taskId)) return;
+    submitBtn.disabled = false;
+    setSubmitStatus(data.message || (data.ok ? 'Отправлено' : 'Ошибка отправки'), data.ok ? 'ok' : 'error');
+  });
+
+  submitBtn.addEventListener('click', () => {
+    const code = currentCode();
+    if (!code.trim()) {
+      setSubmitStatus('Нечего сдавать — сначала напишите код', 'error');
+      return;
+    }
+    submitBtn.disabled = true;
+    setSubmitStatus('Отправляем…');
+    window.parent.postMessage({ type: 'codelab-turtle-submit', taskId, code }, '*');
+  });
+}

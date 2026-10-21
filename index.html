@@ -23,6 +23,12 @@
           <button id="stop-btn" class="action-btn stop" type="button" disabled>⏹ Стоп</button>
           <button id="clear-btn" class="action-btn" type="button">🧹 Очистить</button>
         </div>
+        <!-- Виден только когда страница встроена в Codelab как проект с
+             ручной проверкой (?task=<id>&project=1), см. main.ts::initSubmit. -->
+        <div id="submit-group" class="toolbar-group" hidden>
+          <button id="submit-btn" class="action-btn submit" type="button">📤 Сдать проект</button>
+          <span id="submit-status" class="submit-status" aria-live="polite"></span>
+        </div>
       </header>
       <main id="workspace-area">
         <section id="editor-pane">

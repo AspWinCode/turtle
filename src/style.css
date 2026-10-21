@@ -72,6 +72,30 @@ body {
   cursor: not-allowed;
 }
 
+.action-btn.submit {
+  background: #1864ab;
+  border-color: #1864ab;
+  color: #fff;
+  font-weight: 600;
+}
+
+.action-btn.submit:hover {
+  background: #145591;
+}
+
+.submit-status {
+  font-size: 13px;
+  color: #495057;
+}
+
+.submit-status.error {
+  color: #b3261e;
+}
+
+.submit-status.ok {
+  color: #2f9e44;
+}
+
 #workspace-area {
   flex: 1;
   display: flex;
