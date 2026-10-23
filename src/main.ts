@@ -219,6 +219,11 @@ function containerSize(): { width: number; height: number } {
   };
 }
 
+// true после первого успешно завершённого запуска — используется, чтобы
+// ResizeObserver ниже знал, есть ли вообще что передорисовывать при смене
+// размера контейнера (не дёргать Skulpt, если ученик ещё ничего не запускал).
+let hasDrawn = false;
+
 async function run() {
   const code = currentCode();
   const myToken = ++runToken;
@@ -230,6 +235,7 @@ async function run() {
     if (myToken !== runToken) return; // отменено кнопкой "Стоп" — не перетираем её статус
     runBtn.disabled = false;
     stopBtn.disabled = true;
+    hasDrawn = true;
     setStatus('Готово');
   } catch (e) {
     if (myToken !== runToken) return;
@@ -249,6 +255,7 @@ function stop() {
   // больше не должен что-либо дорисовывать.
   runToken++;
   targetDiv.innerHTML = '';
+  hasDrawn = false;
   runBtn.disabled = false;
   stopBtn.disabled = true;
   setStatus('Остановлено');
@@ -257,6 +264,7 @@ function stop() {
 function clearCanvas() {
   runToken++;
   targetDiv.innerHTML = '';
+  hasDrawn = false;
   setStatus('Холст очищен');
 }
 
@@ -267,6 +275,33 @@ clearBtn.addEventListener('click', clearCanvas);
 window.addEventListener('resize', () => {
   if (mode === 'blocks') Blockly.svgResize(workspace);
 });
+
+// Skulpt создаёт canvas ровно под размер контейнера НА МОМЕНТ запуска
+// (см. containerSize()/runPythonTurtle) и потом сам его не меняет — если
+// контейнер после этого станет больше (ученик перетащил разделитель панелей
+// в Codelab шире, развернул окно, или первый автозапуск ниже случился до
+// того, как раскладка страницы-хозяина устоялась), рисунок так и остаётся
+// маленьким посреди большого пустого холста ("у некоторых ограничен экран
+// вывода"). Передорисовываем при заметной смене размера контейнера — тем же
+// run(), которым и так перерисовывается код при каждом запуске.
+let resizeRedrawTimer: number | undefined;
+let lastObservedSize = { width: 0, height: 0 };
+const canvasResizeObserver = new ResizeObserver((entries) => {
+  const entry = entries[0];
+  if (!entry) return;
+  const { width, height } = entry.contentRect;
+  // Игнорируем субпиксельный шум/первое срабатывание сразу после запуска —
+  // интересует только заметная смена доступного места (развернули панель,
+  // окно и т.п.), не каждое дрожание layout.
+  const changed = Math.abs(width - lastObservedSize.width) > 20 || Math.abs(height - lastObservedSize.height) > 20;
+  lastObservedSize = { width, height };
+  if (!changed || !hasDrawn || stopBtn.disabled === false) return; // stopBtn enabled ⇒ уже что-то выполняется
+  window.clearTimeout(resizeRedrawTimer);
+  resizeRedrawTimer = window.setTimeout(() => {
+    if (hasDrawn) void run();
+  }, 300);
+});
+canvasResizeObserver.observe(document.getElementById('canvas-pane') as HTMLElement);
 
 // Прогресс (код/блоки) и так лежит в localStorage и переживает перезагрузку
 // страницы — но раньше сам РИСУНОК не восстанавливался: ученик возвращался

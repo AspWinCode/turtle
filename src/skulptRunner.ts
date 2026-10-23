@@ -37,7 +37,20 @@ export function runPythonTurtle(
   size: { width: number; height: number },
 ): Promise<void> {
   const targetEl = document.getElementById(targetId);
-  if (targetEl) targetEl.innerHTML = '';
+  if (targetEl) {
+    targetEl.innerHTML = '';
+    // Skulpt's turtle module (src/lib/turtle.js) кэширует свой инстанс ПРЯМО
+    // НА DOM-ЭЛЕМЕНТЕ (targetEl.turtleInstance) — и если он уже есть, при
+    // следующем "import turtle" просто вызывает turtleInstance.reset()
+    // вместо создания нового canvas с актуальными Sk.TurtleGraphics.width/
+    // height. targetEl.innerHTML='' этого свойства не трогает (оно не
+    // ребёнок DOM, а поле самого объекта), поэтому canvas навсегда
+    // застревал на размере САМОГО ПЕРВОГО запуска за всё время жизни
+    // страницы/iframe — сколько ни меняй size здесь. Без этого удаления
+    // перезапуск при ресайзе контейнера (см. ResizeObserver в main.ts)
+    // ничего не решает.
+    delete (targetEl as unknown as { turtleInstance?: unknown }).turtleInstance;
+  }
 
   Sk.configure({
     output: onOutput,
