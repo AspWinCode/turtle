@@ -47,7 +47,25 @@ def _turtle_compat_bgcolor(self, color=None, g=None, b=None):
     return _turtle_compat_original_bgcolor(self, color, g, b)
 
 def _turtle_compat_setup(self, width=None, height=None, startx=None, starty=None):
-    result = _turtle_compat_original_setup(self, width, height, startx, starty)
+    # В браузере окно turtle нельзя физически расширить до 800x600, если
+    # панель ученика уже шире/уже этого размера. Сохраняем запрошенные
+    # размеры как мировую систему координат, но создаём canvas в исходном
+    # размере контейнера. Иначе при setup(800, 600) объекты справа (x=350)
+    # оказываются за обрезанной границей узкой панели.
+    canvas_width = self._width
+    canvas_height = self._height
+    world_width = width if width is not None else canvas_width
+    world_height = height if height is not None else canvas_height
+    result = _turtle_compat_original_setup(
+        self, canvas_width, canvas_height, startx, starty
+    )
+    if width is not None or height is not None:
+        self._setworldcoordinates(
+            -world_width / 2,
+            -world_height / 2,
+            world_width / 2,
+            world_height / 2,
+        )
     if _turtle_compat_last_bgcolor is not None:
         _turtle_compat_original_bgcolor(self, _turtle_compat_last_bgcolor)
     return result
