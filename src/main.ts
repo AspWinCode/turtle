@@ -233,6 +233,10 @@ async function run() {
   try {
     await runPythonTurtle(code, TARGET_ID, () => {}, containerSize());
     if (myToken !== runToken) return; // отменено кнопкой "Стоп" — не перетираем её статус
+    // Skulpt's turtle keyboard handlers are attached to the target container.
+    // Return focus there after Run so window.listen()/onkeypress() receive keys
+    // immediately instead of leaving focus on the toolbar or CodeMirror.
+    targetDiv.focus();
     runBtn.disabled = false;
     stopBtn.disabled = true;
     hasDrawn = true;

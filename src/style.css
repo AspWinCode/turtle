@@ -156,6 +156,11 @@ body {
   position: relative;
 }
 
+#turtle-canvas:focus {
+  outline: 2px solid #2f9e44;
+  outline-offset: 2px;
+}
+
 /* Skulpt сам стыкует два своих canvas друг с другом через
    position:relative + margin-top в ПИКСЕЛЯХ, равный высоте первого —
    хрупко: дробные пиксели (масштаб страницы, зум, встраивание в
