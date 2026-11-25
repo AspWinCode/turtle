@@ -39,6 +39,8 @@ def _turtle_compat_module_onkeypress(fun, key=None):
 _turtle_compat_original_bgcolor = _turtle_compat.Screen.bgcolor
 _turtle_compat_original_setup = _turtle_compat.Screen.setup
 _turtle_compat_last_bgcolor = None
+_turtle_compat_canvas_width = __TURTLE_CANVAS_WIDTH__
+_turtle_compat_canvas_height = __TURTLE_CANVAS_HEIGHT__
 
 def _turtle_compat_bgcolor(self, color=None, g=None, b=None):
     global _turtle_compat_last_bgcolor
@@ -52,8 +54,8 @@ def _turtle_compat_setup(self, width=None, height=None, startx=None, starty=None
     # размеры как мировую систему координат, но создаём canvas в исходном
     # размере контейнера. Иначе при setup(800, 600) объекты справа (x=350)
     # оказываются за обрезанной границей узкой панели.
-    canvas_width = self._width
-    canvas_height = self._height
+    canvas_width = _turtle_compat_canvas_width
+    canvas_height = _turtle_compat_canvas_height
     world_width = width if width is not None else canvas_width
     world_height = height if height is not None else canvas_height
     result = _turtle_compat_original_setup(
@@ -171,7 +173,10 @@ export function runPythonTurtle(
   // за разумное время выглядит как "ничего не происходит"; 6 ("normal") —
   // то, что большинство туториалов и так считают дефолтом. Ученик может
   // переопределить своим turtle.speed(...) — он просто выполнится позже.
-  const fullCode = `${TURTLE_COMPAT}\nimport turtle\nturtle.speed(6)\n${code}`;
+  const compatCode = TURTLE_COMPAT
+    .replace('__TURTLE_CANVAS_WIDTH__', String(Math.max(1, Math.round(size.width))))
+    .replace('__TURTLE_CANVAS_HEIGHT__', String(Math.max(1, Math.round(size.height))));
+  const fullCode = `${compatCode}\nimport turtle\nturtle.speed(6)\n${code}`;
 
   return Sk.misceval
     .asyncToPromise(() => Sk.importMainWithBody('<stdin>', false, fullCode, true))
