@@ -39,8 +39,6 @@ def _turtle_compat_module_onkeypress(fun, key=None):
 _turtle_compat_original_bgcolor = _turtle_compat.Screen.bgcolor
 _turtle_compat_original_setup = _turtle_compat.Screen.setup
 _turtle_compat_last_bgcolor = None
-_turtle_compat_canvas_width = __TURTLE_CANVAS_WIDTH__
-_turtle_compat_canvas_height = __TURTLE_CANVAS_HEIGHT__
 
 def _turtle_compat_bgcolor(self, color=None, g=None, b=None):
     global _turtle_compat_last_bgcolor
@@ -49,25 +47,7 @@ def _turtle_compat_bgcolor(self, color=None, g=None, b=None):
     return _turtle_compat_original_bgcolor(self, color, g, b)
 
 def _turtle_compat_setup(self, width=None, height=None, startx=None, starty=None):
-    # В браузере окно turtle нельзя физически расширить до 800x600, если
-    # панель ученика уже шире/уже этого размера. Сохраняем запрошенные
-    # размеры как мировую систему координат, но создаём canvas в исходном
-    # размере контейнера. Иначе при setup(800, 600) объекты справа (x=350)
-    # оказываются за обрезанной границей узкой панели.
-    canvas_width = _turtle_compat_canvas_width
-    canvas_height = _turtle_compat_canvas_height
-    world_width = width if width is not None else canvas_width
-    world_height = height if height is not None else canvas_height
-    result = _turtle_compat_original_setup(
-        self, canvas_width, canvas_height, startx, starty
-    )
-    if width is not None or height is not None:
-        self._setworldcoordinates(
-            -world_width / 2,
-            -world_height / 2,
-            world_width / 2,
-            world_height / 2,
-        )
+    result = _turtle_compat_original_setup(self, width, height, startx, starty)
     if _turtle_compat_last_bgcolor is not None:
         _turtle_compat_original_bgcolor(self, _turtle_compat_last_bgcolor)
     return result
@@ -92,6 +72,10 @@ function patchTurtleRuntime() {
     [
       'this._size=1,this._filling=!1',
       'this._size=1,this._stretchWid=1,this._stretchLen=1,this._filling=!1',
+    ],
+    [
+      'e.$setup=function(e,t,r,n){return isNaN(parseFloat(e))&&(e=getWidth()),isNaN(parseFloat(t))&&(t=getHeight()),1>=e&&(e=getWidth()*e),1>=t&&(t=getHeight()*t),this._width=e,this._height=t,',
+      'e.$setup=function(e,t,r,n){var o=getWidth(),a=getHeight();return isNaN(parseFloat(e))&&(e=o),isNaN(parseFloat(t))&&(t=a),1>=e&&(e=o*e),1>=t&&(t=a*t),this._width=o,this._height=a,',
     ],
     [
       't.scale(p,g),s.nodeName',
@@ -173,10 +157,7 @@ export function runPythonTurtle(
   // за разумное время выглядит как "ничего не происходит"; 6 ("normal") —
   // то, что большинство туториалов и так считают дефолтом. Ученик может
   // переопределить своим turtle.speed(...) — он просто выполнится позже.
-  const compatCode = TURTLE_COMPAT
-    .replace('__TURTLE_CANVAS_WIDTH__', String(Math.max(1, Math.round(size.width))))
-    .replace('__TURTLE_CANVAS_HEIGHT__', String(Math.max(1, Math.round(size.height))));
-  const fullCode = `${compatCode}\nimport turtle\nturtle.speed(6)\n${code}`;
+  const fullCode = `${TURTLE_COMPAT}\nimport turtle\nturtle.speed(6)\n${code}`;
 
   return Sk.misceval
     .asyncToPromise(() => Sk.importMainWithBody('<stdin>', false, fullCode, true))
